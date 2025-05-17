@@ -1,24 +1,24 @@
+// src/App.js
 import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import './App.css';
+import WelcomePage from './pages/WelcomePage/WelcomePage';
+import ImageRenderer from './pages/ImageRenderer/ImageRenderer';
+// import AboutPage from './pages/AboutPage/AboutPage';
+// import DashboardPage from './pages/DashboardPage/DashboardPage';
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <h1>Welcome to PTI App!</h1>
-        <p>This is a React frontend served by Django backend.</p>
-        <button 
-          onClick={() => {
-            fetch('/api/hello/')
-              .then(response => response.json())
-              .then(data => alert(data.message))
-              .catch(error => console.error('Error:', error));
-          }}
-        >
-          Test Backend Connection
-        </button>
-      </header>
-    </div>
+    <Router>
+      <div className="App">
+        <Routes>
+          <Route path="/" element={<WelcomePage />} />
+          <Route path="/pti" element={<ImageRenderer />}/>
+          {/* <Route path="/about" element={<AboutPage />} />
+          <Route path="/dashboard" element={<DashboardPage />} /> */}
+        </Routes>
+      </div>
+    </Router>
   );
 }
 
