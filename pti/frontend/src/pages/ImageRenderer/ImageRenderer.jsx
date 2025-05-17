@@ -1,26 +1,35 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ZoomIn, ZoomOut, RefreshCw, MousePointer, Hand, Move } from 'lucide-react';
+import { ZoomIn, ZoomOut, RefreshCw, MousePointer, Hand, ThumbsUp, ThumbsDown, Filter } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import './ImageRenderer.css';
 
-// Dummy data for pins and comments - with normalized coordinates between 0-1
+// Modified dummy data for pins and comments - with normalized coordinates between 0-1
+// Added a sentiment field to classify comments as positive or negative
 const dummyPins = [
-  { id: 1, x: 0.25, y: 0.2, comment: "I love the color scheme in this area!" },
-  { id: 2, x: 0.4, y: 0.35, comment: "The layout here is confusing. Could be improved." },
-  { id: 3, x: 0.6, y: 0.25, comment: "This section feels very intuitive to use." },
-  { id: 4, x: 0.3, y: 0.5, comment: "The text is too small to read comfortably." },
-  { id: 5, x: 0.55, y: 0.55, comment: "Great visual hierarchy in this section." },
-  { id: 6, x: 0.7, y: 0.35, comment: "Would be nice to have more contrast here." },
-  { id: 7, x: 0.2, y: 0.4, comment: "Navigation in this area works well." },
-  { id: 8, x: 0.65, y: 0.2, comment: "This part seems unnecessarily complex." },
-  { id: 9, x: 0.3, y: 0.7, comment: "I really like how this information is organized." },
-  { id: 10, x: 0.6, y: 0.6, comment: "The interactive elements here are fun to use!" },
+  { id: 1, x: 0.25, y: 0.2, comment: "I love the color scheme in this area!", sentiment: "positive" },
+  { id: 2, x: 0.4, y: 0.35, comment: "The layout here is confusing. Could be improved.", sentiment: "negative" },
+  { id: 3, x: 0.6, y: 0.25, comment: "This section feels very intuitive to use.", sentiment: "positive" },
+  { id: 4, x: 0.3, y: 0.5, comment: "The text is too small to read comfortably.", sentiment: "negative" },
+  { id: 5, x: 0.55, y: 0.55, comment: "Great visual hierarchy in this section.", sentiment: "positive" },
+  { id: 6, x: 0.7, y: 0.35, comment: "Would be nice to have more contrast here.", sentiment: "negative" },
+  { id: 7, x: 0.2, y: 0.4, comment: "Navigation in this area works well.", sentiment: "positive" },
+  { id: 8, x: 0.65, y: 0.2, comment: "This part seems unnecessarily complex.", sentiment: "negative" },
+  { id: 9, x: 0.3, y: 0.7, comment: "I really like how this information is organized.", sentiment: "positive" },
+  { id: 10, x: 0.6, y: 0.6, comment: "The interactive elements here are fun to use!", sentiment: "positive" },
+ 
 ];
 
 // Interaction modes
 const INTERACTION_MODES = {
   SELECT: 'select',
   PAN: 'pan'
+};
+
+// Filter types
+const FILTER_TYPES = {
+  ALL: 'all',
+  POSITIVE: 'positive',
+  NEGATIVE: 'negative'
 };
 
 const ImageAnnotationApp = () => {
@@ -32,7 +41,9 @@ const ImageAnnotationApp = () => {
   const imageUrlFromState = location.state?.imageUrl || defaultImageUrl;
   
   const [pins, setPins] = useState(dummyPins);
+  const [filteredPins, setFilteredPins] = useState(dummyPins);
   const [selectedPins, setSelectedPins] = useState([]);
+  const [activeFilter, setActiveFilter] = useState(FILTER_TYPES.ALL);
   const [selectionActive, setSelectionActive] = useState(false);
   const [selectionStart, setSelectionStart] = useState({ x: 0, y: 0 });
   const [selectionEnd, setSelectionEnd] = useState({ x: 0, y: 0 });
@@ -50,6 +61,20 @@ const ImageAnnotationApp = () => {
   const imageContainerRef = useRef(null);
   const imageRef = useRef(null);
   const viewportRef = useRef(null);
+  const commentsRef = useRef(null);
+
+  // Apply filters whenever activeFilter changes
+  useEffect(() => {
+    if (activeFilter === FILTER_TYPES.ALL) {
+      setFilteredPins(pins);
+    } else {
+      setFilteredPins(pins.filter(pin => pin.sentiment === activeFilter));
+    }
+    // Also update selected pins to only include ones that match the current filter
+    setSelectedPins(prev => prev.filter(pin => 
+      activeFilter === FILTER_TYPES.ALL || pin.sentiment === activeFilter
+    ));
+  }, [activeFilter, pins]);
 
   // Disable text selection when in selection mode
   useEffect(() => {
@@ -185,6 +210,11 @@ const ImageAnnotationApp = () => {
     setInteractionMode(prev => 
       prev === INTERACTION_MODES.SELECT ? INTERACTION_MODES.PAN : INTERACTION_MODES.SELECT
     );
+  };
+
+  // Handle filter change
+  const handleFilterChange = (filter) => {
+    setActiveFilter(filter);
   };
 
   // Convert normalized pin coordinates to viewport coordinates
@@ -328,7 +358,7 @@ const ImageAnnotationApp = () => {
     if (selectionActive && interactionMode === INTERACTION_MODES.SELECT) {
       // Complete selection
       // Find pins within selection area, using normalized coordinates
-      const selected = pins.filter(pin => {
+      const selected = filteredPins.filter(pin => {
         const minX = Math.min(selectionStart.x, selectionEnd.x);
         const maxX = Math.max(selectionStart.x, selectionEnd.x);
         const minY = Math.min(selectionStart.y, selectionEnd.y);
@@ -443,6 +473,11 @@ const ImageAnnotationApp = () => {
     return 'default';
   };
 
+  // Get pin marker color based on sentiment
+  const getPinColor = (pin) => {
+    return pin.sentiment === "positive" ? "#10b981" : "#ef4444";
+  };
+
   return (
     <div className="image-annotation-container">
       {/* Left panel - Image with pins */}
@@ -524,6 +559,48 @@ const ImageAnnotationApp = () => {
             >
               <RefreshCw size={20} className="mr-1" /> Reset View
             </button>
+
+            <div className="toolbar-divider"></div>
+
+            {/* Comment filter buttons */}
+            <div className="filter-buttons" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.875rem', display: 'flex', alignItems: 'center' }}>
+                <Filter size={16} style={{ marginRight: '0.25rem' }} /> Filter:
+              </span>
+              <button
+                onClick={() => handleFilterChange(FILTER_TYPES.ALL)}
+                className={`toolbar-button ${activeFilter === FILTER_TYPES.ALL ? 'primary-button' : 'secondary-button'}`}
+                disabled={!imageLoaded}
+                title="Show All Comments"
+              >
+                All
+              </button>
+              <button
+                onClick={() => handleFilterChange(FILTER_TYPES.POSITIVE)}
+                className={`toolbar-button ${activeFilter === FILTER_TYPES.POSITIVE ? 'primary-button' : ''}`}
+                disabled={!imageLoaded}
+                title="Show Only Positive Comments"
+                style={{ 
+                  backgroundColor: activeFilter === FILTER_TYPES.POSITIVE ? '#10b981' : '#6b7280',
+                  color: 'white'
+                }}
+              >
+                <ThumbsUp size={16} style={{ marginRight: '0.25rem' }} /> Positive
+              </button>
+              <button
+                onClick={() => handleFilterChange(FILTER_TYPES.NEGATIVE)}
+                className={`toolbar-button ${activeFilter === FILTER_TYPES.NEGATIVE ? 'primary-button' : ''}`}
+                disabled={!imageLoaded}
+                title="Show Only Negative Comments"
+                style={{ 
+                  backgroundColor: activeFilter === FILTER_TYPES.NEGATIVE ? '#ef4444' : '#6b7280',
+                  color: 'white'
+                }}
+              >
+                <ThumbsDown size={16} style={{ marginRight: '0.25rem' }} /> Negative
+              </button>
+            </div>
+
             {selectedPins.length > 0 && (
               <span style={{fontSize: '0.875rem', color: '#6b7280', marginLeft: '0.5rem'}}>
                 {selectedPins.length} pins selected
@@ -598,8 +675,9 @@ const ImageAnnotationApp = () => {
                 />
                 
                 {/* All pins - positioned using normalized coordinates */}
-                {pins.map(pin => {
+                {filteredPins.map(pin => {
                   const pinPos = getPinViewportPosition(pin);
+                  const pinColor = getPinColor(pin);
                   return (
                     <div 
                       key={pin.id}
@@ -608,9 +686,11 @@ const ImageAnnotationApp = () => {
                       } ${selectedPins.length > 0 && !selectedPins.includes(pin) ? 'pin-faded' : ''}`}
                       style={{ 
                         left: `${pinPos.x}px`, 
-                        top: `${pinPos.y}px`
+                        top: `${pinPos.y}px`,
+                        backgroundColor: pinColor,
+                        borderColor: 'white'
                       }}
-                      title={`Pin #${pin.id}`}
+                      title={`Pin #${pin.id} (${pin.sentiment})`}
                     />
                   );
                 })}
@@ -628,12 +708,15 @@ const ImageAnnotationApp = () => {
             {/* Current mode indicator */}
             <div className="mode-indicator">
               {interactionMode === INTERACTION_MODES.SELECT ? 'Selection Mode' : 'Pan Mode'}
+              {activeFilter !== FILTER_TYPES.ALL && (
+                <span> | Showing {activeFilter} comments</span>
+              )}
             </div>
           </div>
           
           <div className="help-text">
             {imageLoaded 
-              ? `Current mode: ${interactionMode === INTERACTION_MODES.SELECT ? 'Selection (draw to select pins)' : 'Pan (drag to move image)'}` 
+              ? `Current mode: ${interactionMode === INTERACTION_MODES.SELECT ? 'Selection (draw to select pins)' : 'Pan (drag to move image)'} | Filter: ${activeFilter}` 
               : "Add images to pti_app/dummy_data directory to get started"}
           </div>
         </div>
@@ -650,15 +733,40 @@ const ImageAnnotationApp = () => {
               <p style={{fontSize: '0.875rem', marginTop: '0.5rem'}}>Please wait for the image to load or check if it exists</p>
             </div>
           ) : selectedPins.length > 0 ? (
-            <div>
+            <div 
+              ref={commentsRef}
+              className="comments-scrollable-container"
+              style={{ 
+                overflowY: 'auto', 
+                height: 'calc(100% - 40px)', // Subtract title height
+                paddingRight: '0.5rem',
+                marginRight: '-0.5rem', // Compensate for padding to align with the rest of the panel
+              }}
+            >
               {selectedPins.map(pin => (
                 <div key={pin.id} className="comment-card">
                   <div className="comment-header">
-                    <div className="pin-indicator"></div>
+                    <div 
+                      className="pin-indicator" 
+                      style={{ backgroundColor: getPinColor(pin) }}
+                    ></div>
                     <span className="pin-label">Pin #{pin.id}</span>
                     <span className="pin-position">
                       Position: ({(pin.x*100).toFixed(0)}%, {(pin.y*100).toFixed(0)}%)
                     </span>
+                  </div>
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    marginBottom: '0.25rem',
+                    fontSize: '0.75rem',
+                    color: pin.sentiment === 'positive' ? '#10b981' : '#ef4444'
+                  }}>
+                    {pin.sentiment === 'positive' ? (
+                      <><ThumbsUp size={14} style={{ marginRight: '0.25rem' }} /> Positive feedback</>
+                    ) : (
+                      <><ThumbsDown size={14} style={{ marginRight: '0.25rem' }} /> Needs improvement</>
+                    )}
                   </div>
                   <p className="comment-text">{pin.comment}</p>
                 </div>
@@ -672,6 +780,18 @@ const ImageAnnotationApp = () => {
                   ? "Drag to select a region on the image to view comments" 
                   : "Switch to Selection mode to select pins"}
               </p>
+              {activeFilter !== FILTER_TYPES.ALL && (
+                <p style={{fontSize: '0.875rem', marginTop: '0.5rem', color: '#4b5563'}}>
+                  Note: Only {activeFilter} comments are currently visible.
+                  <button 
+                    onClick={() => handleFilterChange(FILTER_TYPES.ALL)} 
+                    className="toolbar-button primary-button"
+                    style={{marginLeft: '0.5rem', padding: '0.25rem 0.5rem', fontSize: '0.75rem'}}
+                  >
+                    Show all
+                  </button>
+                </p>
+              )}
             </div>
           )}
         </div>

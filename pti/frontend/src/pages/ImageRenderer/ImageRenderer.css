@@ -181,14 +181,12 @@
 }
 
 .pin-default {
-  background-color: #ef4444;
   width: 1rem;
   height: 1rem;
   z-index: 20;
 }
 
 .pin-selected {
-  background-color: #10b981;
   width: 1.5rem;
   height: 1.5rem;
   border: 2px solid white;
@@ -205,6 +203,29 @@
   background-color: rgba(59, 130, 246, 0.2);
   z-index: 10;
   pointer-events: none;
+}
+
+.comments-scrollable-container {
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db #f3f4f6;
+}
+
+.comments-scrollable-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.comments-scrollable-container::-webkit-scrollbar-track {
+  background-color: #f3f4f6;
+  border-radius: 4px;
+}
+
+.comments-scrollable-container::-webkit-scrollbar-thumb {
+  background-color: #d1d5db;
+  border-radius: 4px;
+}
+
+.comments-scrollable-container::-webkit-scrollbar-thumb:hover {
+  background-color: #9ca3af;
 }
 
 .comment-card {
@@ -229,7 +250,6 @@
   width: 1rem;
   height: 1rem;
   border-radius: 9999px;
-  background-color: #ef4444;
   margin-right: 0.5rem;
 }
 
@@ -271,4 +291,29 @@
   font-size: 0.75rem;
   pointer-events: none;
   z-index: 50;
+}
+
+/* Filter button styles */
+.filter-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filter-positive {
+  background-color: #10b981;
+  color: white;
+}
+
+.filter-positive:hover:not(:disabled) {
+  background-color: #059669;
+}
+
+.filter-negative {
+  background-color: #ef4444;
+  color: white;
+}
+
+.filter-negative:hover:not(:disabled) {
+  background-color: #dc2626;
 }
